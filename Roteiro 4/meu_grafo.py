@@ -132,7 +132,7 @@ class MeuGrafo(GrafoListaAdjacencia):
           self.C += 1
           self.dfsGrafo.adicionaAresta(i, self.A[i].getV1(), self.A[i].getV2())
           return self.dfs(self.A[i].getV1())
-        if (V != self.A[i].getV2()) and (V == self.A[i].getV1()) and (self.A[i].getV2() not in self.listaVertices):
+        elif (V != self.A[i].getV2()) and (V == self.A[i].getV1()) and (self.A[i].getV2() not in self.listaVertices):
           self.C += 1
           self.dfsGrafo.adicionaAresta(i, self.A[i].getV1(), self.A[i].getV2())
           return self.dfs(self.A[i].getV2())
@@ -168,34 +168,45 @@ class MeuGrafo(GrafoListaAdjacencia):
       return self.bfs(self.listaVertices[self.C])
     raise VerticeInvalidoException
 
-  def ha_ciclo(self): # Retorna False ou uma lista com vértices e arestas necessários
+  def ha_ciclo(self): # Retorna False ou uma lista com vértices e arestas necessários de um ciclo
     '''
       Percorre o grafo em busca de ciclos.
       :return (False): Retorna False caso não seja encontrado um ciclo.
       :return (list): Retorna uma lista com os vértices e arestas que compõem o ciclo.
     '''
     for vertex in self.N:
-      graph = self.dfs(vertex)
+      currentVertex = vertex
       path = [vertex]
-      for edge in graph.A:
-        path.append(edge)
-        vertices = [self.A[edge].getV1(), self.A[edge].getV2()]
-        if vertices[0] == vertices[1]:
-          return [vertices[0], edge, vertices[1]]
-        edgesInV = []
-        if vertices[0] == vertex:
-          path.append(vertices[1])
-          edgesInV = self.arestas_sobre_vertice(vertices[1])
-        elif vertices[1] == vertex:
-          path.append(vertices[0])
-          edgesInV = self.arestas_sobre_vertice(vertices[0])
-        if edgesInV != []:
-          for edge2 in edgesInV:
-            if (vertex == self.A[edge2].getV1() or vertex == self.A[edge2].getV2()) and str(edge) != str(edge2):
-              path.append(edge2)
+      pathVerified = [vertex]
+      while True:
+        edgesInVertex = self.arestas_sobre_vertice(currentVertex)
+        loop = self.__retornaLaco(currentVertex, edgesInVertex)
+        if loop != False:
+          return loop
+        nextVertex = ""
+        for edge in edgesInVertex:
+          vertices = [self.A[edge].getV1(), self.A[edge].getV2()]
+          otherVertex = vertices[0] if vertices[0] != currentVertex else vertices[1]
+          if edge in pathVerified or otherVertex in pathVerified:
+            continue
+          nextVertex = otherVertex
+          path.append(edge)
+          pathVerified.append(edge)
+          path.append(otherVertex)
+          pathVerified.append(otherVertex)
+          for edgeInNextVertex in self.arestas_sobre_vertice(otherVertex):
+            otherVertex = vertices[0] if vertices[0] != otherVertex else vertices[1]
+            if otherVertex == vertex and edgeInNextVertex not in pathVerified:
+              path.append(edgeInNextVertex)
               path.append(vertex)
               return path
-          path = [vertex]
+        if nextVertex == "":
+          path = path[:-2]
+
+  def __retornaLaco(self, vertex, edgesList):
+    for edge in edgesList:
+      if self.A[edge].getV1() == self.A[edge].getV2():
+        return [vertex, edge, vertex]
     return False
 
   def caminho(self, n): # Retorna uma lista com o caminho de tamanho n
@@ -208,14 +219,14 @@ class MeuGrafo(GrafoListaAdjacencia):
       while True:
         vertex = self.N[counter]
         path = [vertex]
-        for i in self.A:
-          if (path[-1] != self.A[i].getV1()) and (path[-1] == self.A[i].getV2()) and (self.A[i].getV1() not in path):
-            vertex = self.A[i].getV1()
-            path.append(i)
+        for edge in self.A:
+          if (path[-1] != self.A[edge].getV1()) and (path[-1] == self.A[edge].getV2()) and (self.A[edge].getV1() not in path):
+            vertex = self.A[edge].getV1()
+            path.append(edge)
             path.append(vertex)
-          elif (path[-1] != self.A[i].getV2()) and (path[-1] == self.A[i].getV1()) and (self.A[i].getV2() not in path):
-            vertex = self.A[i].getV2()
-            path.append(i)
+          elif (path[-1] != self.A[edge].getV2()) and (path[-1] == self.A[edge].getV1()) and (self.A[edge].getV2() not in path):
+            vertex = self.A[edge].getV2()
+            path.append(edge)
             path.append(vertex)
         if len(path) == n * 2 - 1:
           return path
